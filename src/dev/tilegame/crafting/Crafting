@@ -1,0 +1,56 @@
+package dev.blaze.tilegame.crafting;
+
+	import java.awt.Color;
+	import java.awt.Graphics;
+	import java.awt.event.KeyEvent;
+	
+	import dev.blaze.tilegame.*;
+	import dev.blaze.tilegame.gfx.Assets;
+	import dev.blaze.tilegame.inventory.Inventory;
+	import dev.blaze.tilegame.item.Item;
+	
+	public class Crafting {
+	
+		private Handler handler;
+		
+		private boolean active = false;
+		private int x = 500, y = 10;
+		
+		public Crafting(Handler handler) {
+			this.handler = handler;
+		}
+		
+		public boolean isActive() {
+			return active;
+		}
+		
+		public void tick() {
+			if(handler.getKeyManager().keyJustPressed(KeyEvent.VK_ENTER)) {
+				active = !active;
+			}
+			
+			if(!active) {
+				return;
+			}
+		}
+		
+		public void render(Graphics g) {
+			if(!active)
+				return;
+			
+			if(Inventory.inventoryItems.contains(Item.woodItem) && Inventory.inventoryItems.contains(Item.rockItem)) {
+				g.fillRect(100, 100, 100, 20);
+				g.setColor(Color.white);
+				g.drawString("Craft pickaxe?" , 110, 111);
+			}
+			
+			if(handler.getMouseManager().getMouseX() >= 100 && handler.getMouseManager().getMouseX() <= 200 && 
+					handler.getMouseManager().getMouseY() >= 100 && handler.getMouseManager().getMouseY() <= 120 &&
+					handler.getMouseManager().isLeftPressed()) {
+				Inventory.inventoryItems.add(Item.pickaxe);
+			}
+			
+			g.drawImage(Assets.craftingScreen, x, y, null);
+		}
+		
+	}
