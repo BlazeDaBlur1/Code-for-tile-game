@@ -1,0 +1,29 @@
+package dev.blaze.tilegame.states;
+
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.event.KeyEvent;
+
+import dev.blaze.tilegame.Handler;
+
+public class MenuState extends State {
+
+
+	public MenuState(Handler handler) {
+		super(handler);
+	}
+
+	@Override
+	public void tick() {
+		// Temporarily just go directly to the GameState, skip the menu state!
+		State.setState(handler.getGame().menuState);
+	}
+
+	@Override
+	public void render(Graphics g) {
+		g.fillRect(200, 200, 128, 64);
+		g.setColor(Color.WHITE);
+		g.drawString("Start", 220, 210);
+	}
+
+}

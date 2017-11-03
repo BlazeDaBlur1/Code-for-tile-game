@@ -1,0 +1,23 @@
+package dev.blaze.tilegame.gfx;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+
+public class Text {
+
+	public static void drawString(Graphics g, String text, int x, int y, boolean center, Color c, Font font) {
+		g.setColor(c);
+		g.setFont(font);
+		int xP = x;
+		int yP = y;
+		if(center) {
+			FontMetrics fm = g.getFontMetrics(font);
+			xP = x - fm.stringWidth(text) / 2;
+			yP = (y - fm.getHeight() / 2) + fm.getAscent();
+		}
+		g.drawString(text, xP, yP);
+	}
+	
+}

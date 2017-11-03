@@ -1,0 +1,218 @@
+package dev.blaze.tilegame.entity.creatures;
+
+	import java.awt.Color;
+	import java.awt.Font;
+	import java.awt.Graphics;
+	import java.awt.Rectangle;
+	import java.awt.image.BufferedImage;
+	
+	import dev.blaze.tilegame.*;
+	import dev.blaze.tilegame.crafting.Crafting;
+	import dev.blaze.tilegame.entity.*;
+	import dev.blaze.tilegame.gfx.*;
+	import dev.blaze.tilegame.inventory.*;
+	import dev.blaze.tilegame.item.Item;
+	
+	public class Player extends Creature {
+		
+		//Animations
+		private Animation animDown, animUp, animLeft, animRight;
+		// Attack timer
+		private long lastAttackTimer, attackCooldown = 1000, attackTimer = attackCooldown;
+		// Inventory
+		private Inventory inventory;
+		// To craft
+		private Crafting craft;
+		
+		private int xp = 0;
+		private int money = 0;
+		
+		public Player(Handler handler, float x, float y) {
+			super(handler, x, y, Creature.DEFAULT_CREATURE_WIDTH, Creature.DEFAULT_CREATURE_HEIGHT);
+			
+			this.bounds.x = 22;
+			this.bounds.y = 44;
+			this.bounds.width = 19;
+			this.bounds.height = 19;
+			
+			//Animatons
+			this.animDown = new Animation(500, Assets.player_down);
+			this.animUp = new Animation(500, Assets.player_up);
+			this.animLeft = new Animation(500, Assets.player_left);
+			this.animRight = new Animation(500, Assets.player_right);
+			
+			this.inventory = new Inventory(handler);
+			this.craft = new Crafting(handler);
+		}
+	
+		@Override
+		public void tick() {
+			//Animations
+			this.animDown.tick();
+			this.animUp.tick();
+			this.animRight.tick();
+			this.animLeft.tick();
+			//Movement
+			getInput();
+			move();
+			handler.getGameCamera().centerOnEntity(this);
+			// Attack
+			checkAttacks();
+			// Crafting
+			craft.tick();
+			craft();
+			// Inventory
+			inventory.tick();
+			// Speed of attack
+			if(xp >= 20) attackCooldown = (long) (attackCooldown / 1.5);
+		}
+		
+		private static void craft() {
+			// To craft
+			if(Inventory.inventoryItems.contains(Item.rockItem) && Inventory.inventoryItems.size() == 1) {
+				Inventory.inventoryItems.add(Item.stone);
+				Inventory.inventoryItems.remove(Item.rockItem);
+			}
+			
+			if(Inventory.inventoryItems.contains(Item.woodItem) && Inventory.inventoryItems.contains(Item.rockItem)) {
+				Inventory.inventoryItems.add(Item.pickaxe); 
+				Inventory.inventoryItems.remove(Item.woodItem);
+				Inventory.inventoryItems.remove(Item.rockItem);
+			}
+		}
+		
+		private void checkAttacks(){
+			this.attackTimer += System.currentTimeMillis() - this.lastAttackTimer;
+			this.lastAttackTimer = System.currentTimeMillis();
+			if(this.attackTimer < this.attackCooldown)
+				return;
+			
+			if(this.inventory.isActive()) {
+				return;
+			}
+			if(this.craft.isActive()) {
+				return;
+			}
+			
+			Rectangle cb = getCollisionBounds(0, 0);
+			Rectangle ar = new Rectangle();
+			int arSize = 20;
+			ar.width = arSize;
+			ar.height = arSize;
+			
+			if(this.handler.getKeyManager().aUp){
+				ar.x = cb.x + cb.width / 2 - arSize / 2;
+				ar.y = cb.y - arSize;
+			}else if(this.handler.getKeyManager().aDown){
+				ar.x = cb.x + cb.width / 2 - arSize / 2;
+				ar.y = cb.y + cb.height;
+			}else if(this.handler.getKeyManager().aLeft){
+				ar.x = cb.x - arSize;
+				ar.y = cb.y + cb.height / 2 - arSize / 2;
+			}else if(this.handler.getKeyManager().aRight){
+				ar.x = cb.x + cb.width;
+				ar.y = cb.y + cb.height / 2 - arSize / 2;
+			}else{
+				return;
+			}
+			
+			this.attackTimer = 0;
+			
+			for(Entity e : this.handler.getWorld().getEntityManager().getEntities()){
+				if(e.equals(this))
+					continue;
+				if(e.getCollisionBounds(0, 0).intersects(ar)){
+					e.hurt(1);
+					return;
+				}
+			}
+			
+		}
+		
+		@Override
+		public void die(){
+			System.out.println("You lose"); //$NON-NLS-1$
+		}
+		
+		private void getInput(){
+			this.xMove = 0;
+			this.yMove = 0;
+			
+			if(this.inventory.isActive()) {
+				return;
+			}
+			if(this.craft.isActive()) {
+				return;
+			}
+			
+			if(this.handler.getKeyManager().up)
+				this.yMove = -this.speed;
+			if(this.handler.getKeyManager().down)
+				this.yMove = this.speed;
+			if(this.handler.getKeyManager().left)
+				this.xMove = -this.speed;
+			if(this.handler.getKeyManager().right)
+				this.xMove = this.speed;
+		}
+	
+		@Override
+		public void render(Graphics g) {
+			g.drawImage(getCurrentAnimationFrame(), 
+					(int) (this.x - this.handler.getGameCamera().getxOffset()), 
+					(int) (this.y - this.handler.getGameCamera().getyOffset()), 
+					this.width, this.height, null);
+			g.setColor(Color.CYAN);
+			g.setFont(new Font("Arial", Font.BOLD, 12)); //$NON-NLS-1$
+			g.drawString(this.xp + " xp; $" + money, 10, 10); //$NON-NLS-1$
+		}
+		
+		public int getMoney() {
+			return money;
+		}
+
+		public void setMoney(int money) {
+			this.money = money;
+		}
+
+		public void postRender(Graphics g) {
+			this.inventory.render(g);
+			this.craft.render(g);
+		}
+		
+		private BufferedImage getCurrentAnimationFrame(){
+			if(this.xMove < 0){
+				return this.animLeft.getCurrentFrame();
+			}else if(this.xMove > 0){
+				return this.animRight.getCurrentFrame();
+			}else if(this.yMove < 0){
+				return this.animUp.getCurrentFrame();
+			}else{
+				return this.animDown.getCurrentFrame();
+			}
+		}
+	
+		public Inventory getInventory() {
+			return this.inventory;
+		}
+	
+		public void setInventory(Inventory inventory) {
+			this.inventory = inventory;
+		}
+		
+		public Crafting getCrafting() {
+			return this.craft;
+		}
+		
+		public void setCrafting(Crafting craft) {
+			this.craft = craft;
+		}
+	
+		public int getXp() {
+			return this.xp;
+		}
+	
+		public void setXp(int xp) {
+			this.xp = xp;
+		}
+	
+	}
